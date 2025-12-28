@@ -2,87 +2,89 @@ from flask import Flask, render_template, request
 
 app = Flask(__name__)
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route("/", methods=["GET", "POST"])
 def index():
-    if request.method == 'POST':
+    prediction = None
+    confidence = 0
+    score = 0
+    reasons = []
+    suggestions = []
+    form_data = {}
 
-        # ---------- Read inputs ----------
-        study_hours = float(request.form['study_hours'])
-        attendance = float(request.form['attendance'])
-        internal_marks = float(request.form['internal_marks'])
-        gpa = float(request.form['gpa'])
-        backlogs = int(request.form['backlogs'])
-        assignments = float(request.form['assignments'])
-        sleep = float(request.form['sleep'])
-        participation = int(request.form['participation'])
+    if request.method == "POST":
+        # Read form data
+        study_hours = float(request.form["study_hours"])
+        attendance = float(request.form["attendance"])
+        internal_marks = float(request.form["internal_marks"])
+        gpa = float(request.form["gpa"])
+        backlogs = int(request.form["backlogs"])
+        assignments = float(request.form["assignments"])
+        sleep = float(request.form["sleep"])
+        participation = int(request.form["participation"])
+
+        # Store values to keep inputs after submit
+        form_data = request.form
+
+        # Simple scoring logic
         score = 0
-        reasons = []
-        analysis = []
-        suggestions = []
+        if study_hours >= 4: score += 2
+        if attendance >= 75: score += 2
+        if internal_marks >= 60: score += 2
+        if gpa >= 7: score += 2
+        if backlogs == 0: score += 2
+        if assignments >= 70: score += 1
+        if sleep >= 7: score += 1
+        if participation == 2: score += 1
 
-        # ---------- Scoring logic ----------
-        if study_hours >= 4:
-            score += 2
-            reasons.append("Good daily study hours")
-        elif study_hours >= 2:
-            score += 1
-            reasons.append("Average study hours")
-        if attendance >= 75:
-            score += 2
-            reasons.append("Good attendance")
-        elif attendance >= 60:
-            score += 1
-            reasons.append("Average attendance")
-        if internal_marks >= 40:
-            score += 2
-            reasons.append("Good internal performance")
-        elif internal_marks >= 30:
-            score += 1
-            reasons.append("Average internal marks")
-        max_score = 20
-        confidence = int((score / max_score) * 100)
-
-        # ---------- Prediction ----------
-        if confidence >= 75:
+        # Prediction
+        if score >= 10:
             prediction = "High Performance"
-            reason = "Most academic and behavioral parameters are strong."
-        elif confidence >= 50:
+            confidence = 85
+        elif score >= 6:
             prediction = "Medium Performance"
-            reason = "Overall performance is balanced, but some parameters need improvement."
+            confidence = 65
         else:
-            prediction = "Needs Improvement"
-            reason = "Multiple parameters require attention."
-        
-        suggestions = []
+            prediction = "Low Performance"
+            confidence = 40
 
-        if study_hours < 4:
-            suggestions.append("Increase daily study hours to at least 4 hours")
+        # Reasons
+        if attendance >= 75:
+            reasons.append("Good attendance")
+        if internal_marks >= 60:
+            reasons.append("Good internal performance")
+        if study_hours >= 4:
+            reasons.append("Sufficient study hours")
+        if gpa >= 7:
+            reasons.append("Strong previous GPA")
 
+        # Suggestions (IMPROVED LOGIC)
         if attendance < 75:
-            suggestions.append("Improve attendance above 75%")
+            suggestions.append("Improve attendance to at least 75%")
+        if study_hours < 4:
+            suggestions.append("Increase daily study hours")
+        if internal_marks < 60:
+            suggestions.append("Focus on internal assessments")
+        if assignments < 70:
+            suggestions.append("Submit assignments on time")
+        if sleep < 7:
+            suggestions.append("Maintain proper sleep schedule")
+        if backlogs > 0:
+            suggestions.append("Clear backlogs as early as possible")
 
-        if gpa < 7:
-            suggestions.append("Focus on improving GPA through regular revision")
+        if not suggestions:
+            suggestions.append("Keep maintaining your current performance")
 
-        if assignments < 80:
-            suggestions.append("Submit assignments on time with better quality")
+    return render_template(
+        "index.html",
+        prediction=prediction,
+        confidence=confidence,
+        score=score,
+        reasons=reasons,
+        suggestions=suggestions,
+        form_data=form_data
+    )
 
-        if sleep < 6:
-            suggestions.append("Maintain healthy sleep of 6–8 hours daily")
-  
-        # ---------- Render ----------
-        return render_template(
-            'index.html',
-            prediction=prediction,
-            confidence=confidence,
-            score=score,
-            reasons=reasons,
-            form_data=request.form,
-            suggestions=suggestions
-        )
-
-
-    return render_template('index.html')
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True)
+
+
